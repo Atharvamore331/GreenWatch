@@ -1,15 +1,1 @@
-# Dependencies
-node_modules/
-dist/
-build/
-
-# Environment variables
-.env
-.env.local
-
-# Logs
-*.log
-
-# Editor directories
-.vscode/
-.idea/
+node_modules
