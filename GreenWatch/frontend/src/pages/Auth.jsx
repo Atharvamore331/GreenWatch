@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Leaf, Camera, MapPin, CheckCircle } from 'lucide-react';
+import { Leaf, Shield, User, ArrowRight, CheckCircle, Globe, Zap } from 'lucide-react';
 import axios from 'axios';
 
-// Note: For now we still simulate Auth via API but store in LocalStorage 
-// instead of cookies/JWT for simplicity in the prototype.
 const API_URL = 'http://localhost:5000/api';
 
 export default function Auth() {
@@ -13,6 +11,7 @@ export default function Auth() {
   const [role, setRole] = useState('citizen');
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('greenwatch_current_user'));
@@ -24,6 +23,7 @@ export default function Auth() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
     try {
       if (isLogin) {
         const res = await axios.post(`${API_URL}/auth/login`, { ...formData, role });
@@ -35,103 +35,114 @@ export default function Auth() {
         navigate('/dashboard');
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'An error occurred. Make sure backend is running.');
+      setError(err.response?.data?.error || 'Authentication failed. Please check your credentials.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="auth-bg">
-      <nav className="navbar" style={{background: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(10px)'}}>
-        <div className="container nav-content">
-          <div className="logo" style={{color: 'var(--primary)', fontWeight:'bold', fontSize:'1.5rem', display:'flex', alignItems:'center', gap:'0.5rem'}}>
-            <Leaf /> GreenWatch
-          </div>
+      <div style={{ position: 'absolute', top: '2rem', left: '3rem', display: 'flex', alignItems: 'center', gap: '0.75rem', zIndex: 10 }}>
+        <div style={{ background: 'var(--primary)', padding: '0.5rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Leaf color="white" size={24} />
         </div>
-      </nav>
+        <span style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.02em', color: 'white' }}>GreenWatch</span>
+      </div>
 
-      <div className="container" style={{ marginTop: '3rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <div className="grid grid-cols-2" style={{ alignItems: 'center' }}>
-          <div>
-            <h1 style={{ fontSize: '3.5rem', color: 'white', lineHeight: '1.2', textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>Protect Your Environment, Report Issues Instantly.</h1>
-            <p style={{ fontSize: '1.2rem', color: 'rgba(255,255,255,0.9)', margin: '1.5rem 0', textShadow: '0 1px 5px rgba(0,0,0,0.3)' }}>
-              GreenWatch empowers citizens to report environmental violations like illegal dumping, pollution, and tree cutting to local authorities seamlessly.
-            </p>
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-              <div className="card" style={{ padding: '1.5rem', textAlign: 'center', flex: 1 }}>
-                <Camera size={32} color="var(--primary)" style={{marginBottom:'1rem'}}/>
-                <h3>1. Capture</h3>
-                <p className="form-label">Take a photo of the issue.</p>
-              </div>
-              <div className="card" style={{ padding: '1.5rem', textAlign: 'center', flex: 1 }}>
-                <MapPin size={32} color="var(--primary)" style={{marginBottom:'1rem'}}/>
-                <h3>2. Report</h3>
-                <p className="form-label">Pin the exact location.</p>
-              </div>
-              <div className="card" style={{ padding: '1.5rem', textAlign: 'center', flex: 1 }}>
-                <CheckCircle size={32} color="var(--primary)" style={{marginBottom:'1rem'}}/>
-                <h3>3. Resolve</h3>
-                <p className="form-label">Authorities take action.</p>
-              </div>
-            </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 450px', minHeight: '100vh', padding: '0 5% 0 10%', alignItems: 'center', gap: '5rem' }}>
+        {/* Left Side: Hero */}
+        <div style={{ maxWidth: '700px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(16, 185, 129, 0.1)', padding: '0.5rem 1rem', borderRadius: '999px', border: '1px solid var(--primary-glow)', color: 'var(--primary-light)', marginBottom: '2rem', fontSize: '0.9rem', fontWeight: 600 }}>
+            <Globe size={16} /> <span>Join 10,000+ citizens protecting our planet</span>
           </div>
           
-          <div style={{ paddingLeft: '2rem' }}>
-            <div className="card">
-              <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
-                <button 
-                  className={`btn ${role === 'citizen' ? 'btn-primary' : 'btn-outline'}`} 
-                  style={{flex: 1, border: role!=='citizen'?'none':''}}
-                  onClick={() => {setRole('citizen'); setIsLogin(true); setError('');}}
-                >
-                  Citizen Login
-                </button>
-                <button 
-                  className={`btn ${role === 'admin' ? 'btn-primary' : 'btn-outline'}`} 
-                  style={{flex: 1, border: role!=='admin'?'none':''}}
-                  onClick={() => {setRole('admin'); setIsLogin(true); setError('');}}
-                >
-                  Admin Login
-                </button>
+          <h1 style={{ fontSize: '4.5rem', lineHeight: 1.1, fontWeight: 800, marginBottom: '1.5rem', letterSpacing: '-0.03em' }}>
+            Empowering <span style={{ background: 'linear-gradient(to right, var(--primary-light), var(--secondary-light))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Action</span> For A Greener Future.
+          </h1>
+          
+          <p style={{ fontSize: '1.25rem', color: 'var(--text-muted)', marginBottom: '3rem', maxWidth: '600px' }}>
+            The AI-powered platform for reporting environmental violations, tracking progress, and earning rewards for a sustainable world.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2rem' }}>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <div style={{ color: 'var(--primary)' }}><CheckCircle size={24} /></div>
+              <div>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Instant Reporting</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Snap a photo and pin the location in seconds.</p>
               </div>
-              
-              <h2>{isLogin ? `${role === 'admin' ? 'Admin' : 'Citizen'} Login` : 'Create Citizen Account'}</h2>
-              {error && <div style={{color: 'white', background: 'var(--danger)', padding:'0.5rem', borderRadius:'0.5rem', marginBottom:'1rem'}}>{error}</div>}
-              
-              <form onSubmit={handleSubmit}>
-                {!isLogin && (
-                  <div className="form-group">
-                    <label className="form-label">Full Name</label>
-                    <input type="text" className="form-control" required placeholder="John Doe" 
-                      value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-                  </div>
-                )}
-                <div className="form-group">
-                  <label className="form-label">Email</label>
-                  <input type="email" className="form-control" required placeholder="you@example.com"
-                    value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Password</label>
-                  <input type="password" className="form-control" required placeholder="••••••••"
-                    value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
-                </div>
-                <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }}>
-                  {isLogin ? 'Login' : 'Register'}
-                </button>
-              </form>
-              
-              {role === 'citizen' && (
-                <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-                  <p className="form-label">
-                    {isLogin ? 'New here? ' : 'Already have an account? '}
-                    <span style={{fontWeight:600, color:'var(--primary)', cursor:'pointer'}} onClick={() => setIsLogin(!isLogin)}>
-                      {isLogin ? 'Create an account' : 'Login instead'}
-                    </span>
-                  </p>
-                </div>
-              )}
+            </div>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <div style={{ color: 'var(--secondary-light)' }}><Zap size={24} /></div>
+              <div>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Dynamic Rewards</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Earn impact points for every resolved report.</p>
+              </div>
             </div>
           </div>
+        </div>
+
+        {/* Right Side: Auth Card */}
+        <div className="card" style={{ padding: '3rem', width: '100%', maxWidth: '450px', background: 'rgba(30, 41, 59, 0.8)' }}>
+          {/* Role Toggle */}
+          <div style={{ display: 'flex', background: 'rgba(0,0,0,0.2)', padding: '0.3rem', borderRadius: '1rem', marginBottom: '2.5rem', position: 'relative' }}>
+            <div style={{ position: 'absolute', width: '50%', height: 'calc(100% - 0.6rem)', background: 'var(--primary)', borderRadius: '0.75rem', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', left: role === 'citizen' ? '0.3rem' : 'calc(50% - 0.3rem)', zIndex: 0 }}></div>
+            <button 
+              onClick={() => {setRole('citizen'); setIsLogin(true);}}
+              style={{ flex: 1, padding: '0.75rem', border: 'none', background: 'transparent', color: role === 'citizen' ? 'white' : 'var(--text-muted)', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', zIndex: 1, position: 'relative', transition: 'color 0.3s' }}
+            >
+              Citizen
+            </button>
+            <button 
+              onClick={() => {setRole('admin'); setIsLogin(true);}}
+              style={{ flex: 1, padding: '0.75rem', border: 'none', background: 'transparent', color: role === 'admin' ? 'white' : 'var(--text-muted)', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer', zIndex: 1, position: 'relative', transition: 'color 0.3s' }}
+            >
+              Admin
+            </button>
+          </div>
+
+          <h2 style={{ fontSize: '2rem', marginBottom: '0.5rem', fontWeight: 700 }}>{isLogin ? 'Sign In' : 'Join GreenWatch'}</h2>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
+            {isLogin ? `Access your ${role} control panel` : 'Start making a difference today'}
+          </p>
+
+          {error && <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: 'var(--danger)', padding: '0.75rem', borderRadius: '0.75rem', marginBottom: '1.5rem', fontSize: '0.9rem' }}>{error}</div>}
+
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {!isLogin && (
+              <div className="form-group">
+                <label className="form-label" style={{ color: 'var(--text-muted)' }}>Full Name</label>
+                <div style={{ position: 'relative' }}>
+                  <User size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input type="text" className="form-control" style={{ paddingLeft: '2.75rem' }} required placeholder="Alex Rivera" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                </div>
+              </div>
+            )}
+            <div className="form-group">
+              <label className="form-label" style={{ color: 'var(--text-muted)' }}>Work Email</label>
+              <input type="email" className="form-control" required placeholder="alex@greenwatch.org" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+            </div>
+            <div className="form-group">
+              <label className="form-label" style={{ color: 'var(--text-muted)' }}>Secure Password</label>
+              <input type="password" className="form-control" required placeholder="••••••••" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+            </div>
+
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem', padding: '1rem' }} disabled={loading}>
+              {loading ? 'Authenticating...' : (isLogin ? 'Enter Workspace' : 'Create Account')} <ArrowRight size={18} />
+            </button>
+          </form>
+
+          {role === 'citizen' && (
+            <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
+                {isLogin ? "Don't have an account? " : "Already registered? "}
+                <span style={{ color: 'var(--primary)', fontWeight: 600, cursor: 'pointer' }} onClick={() => setIsLogin(!isLogin)}>
+                  {isLogin ? 'Sign Up' : 'Sign In'}
+                </span>
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
