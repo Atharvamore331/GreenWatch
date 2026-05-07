@@ -9,7 +9,8 @@ import {
   ShieldCheck,
   Zap,
   MapPin,
-  Clock
+  Clock,
+  ExternalLink
 } from 'lucide-react';
 import Layout from '../components/Layout';
 
@@ -37,125 +38,151 @@ export default function Dashboard() {
     } catch (err) {
       console.error(err);
     } finally {
-      setIsLoading(false);
+      // Simulate network delay for premium feel
+      setTimeout(() => setIsLoading(false), 800);
     }
   };
 
   const stats = [
-    { label: 'Total Reports', value: complaints.length, icon: <AlertTriangle />, color: 'var(--primary)' },
-    { label: 'Resolved', value: complaints.filter(c => c.status === 'resolved').length, icon: <ShieldCheck />, color: '#3b82f6' },
-    { label: 'Env. Points', value: user?.points || 0, icon: <Zap />, color: '#f59e0b' },
+    { label: 'Total Reports', value: complaints.length, icon: <AlertTriangle size={24} />, color: 'var(--primary)', shadow: 'var(--primary-glow)' },
+    { label: 'Resolved Cases', value: complaints.filter(c => c.status === 'resolved').length, icon: <ShieldCheck size={24} />, color: 'var(--secondary)', shadow: 'rgba(59, 130, 246, 0.2)' },
+    { label: 'Impact Points', value: user?.points || 0, icon: <Zap size={24} />, color: 'var(--warning)', shadow: 'rgba(245, 158, 11, 0.2)' },
   ];
 
   if (!user) return null;
 
   return (
     <Layout>
-      <div className="citizen-dashboard">
+      <div className="fade-in">
         {/* Welcome Header */}
-        <div style={{ marginBottom: '2.5rem' }}>
-          <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', fontWeight: 700 }}>
-            Welcome back, <span style={{ color: 'var(--primary)' }}>{user.name}</span>
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem' }}>
-            Your environmental contribution is making a difference today.
+        <div className="mb-8">
+          <h1 className="text-gradient">Welcome, {user.name}</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '1.125rem' }}>
+            Track your environmental impact and active reports.
           </p>
         </div>
 
-        {/* Stats Section */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
-          {stats.map((s, i) => (
-            <div key={i} className="card" style={{ padding: '2rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <p style={{ color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: 500 }}>{s.label}</p>
-                  <h2 style={{ fontSize: '2.5rem', fontWeight: 700 }}>{s.value}</h2>
-                </div>
-                <div style={{ padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '1rem', color: s.color }}>
-                  {s.icon}
+        {/* Stats Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--s-6)', marginBottom: 'var(--s-12)' }}>
+          {isLoading ? (
+            [1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: '140px', borderRadius: 'var(--radius-lg)' }}></div>)
+          ) : (
+            stats.map((s, i) => (
+              <div key={i} className="card card-interactive" style={{ padding: 'var(--s-6)' }}>
+                <div className="flex-between">
+                  <div>
+                    <p style={{ color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.875rem', marginBottom: 'var(--s-2)' }}>{s.label}</p>
+                    <h2 style={{ fontSize: '2.5rem', fontWeight: 800 }}>{s.value}</h2>
+                  </div>
+                  <div style={{ 
+                    padding: '1rem', 
+                    background: 'rgba(255,255,255,0.03)', 
+                    borderRadius: 'var(--radius-md)', 
+                    color: s.color,
+                    boxShadow: `0 0 20px ${s.shadow}`,
+                    border: '1px solid rgba(255,255,255,0.05)'
+                  }}>
+                    {s.icon}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
-        {/* Content Split */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '2rem' }}>
-          {/* Recent Reports */}
+        {/* Main Dashboard Content */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 'var(--s-8)' }}>
+          
+          {/* Left Column: Reports List */}
           <section>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ fontSize: '1.5rem' }}>Your Recent Reports</h3>
-              <button className="btn btn-outline" style={{ padding: '0.4rem 1rem', fontSize: '0.9rem' }}>View All</button>
+            <div className="flex-between mb-8">
+              <h3>Active Intelligence Reports</h3>
+              <button className="btn btn-ghost">View History <ChevronRight size={18} /></button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              {complaints.length === 0 ? (
-                <div className="card" style={{ textAlign: 'center', padding: '4rem' }}>
-                  <AlertTriangle size={48} color="var(--text-muted)" style={{ marginBottom: '1rem', opacity: 0.5 }} />
-                  <p style={{ color: 'var(--text-muted)' }}>No reports filed yet. Start your journey by reporting an issue.</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s-4)' }}>
+              {isLoading ? (
+                [1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: '100px', borderRadius: 'var(--radius-lg)' }}></div>)
+              ) : complaints.length === 0 ? (
+                <div className="card flex-center" style={{ padding: 'var(--s-16)', flexDirection: 'column', textAlign: 'center' }}>
+                  <AlertTriangle size={48} color="var(--text-muted)" style={{ marginBottom: 'var(--s-4)', opacity: 0.3 }} />
+                  <h4 style={{ color: 'var(--text-muted)' }}>No Active Reports</h4>
+                  <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>You haven't filed any environmental reports yet.</p>
+                  <button className="btn btn-primary mt-4"><Plus size={18} /> New Report</button>
                 </div>
               ) : (
-                complaints.slice(0, 3).map(c => (
-                  <div key={c.id} className="card" style={{ padding: '1.5rem', display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-                    <div style={{ width: '80px', height: '80px', borderRadius: '1rem', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                complaints.slice(0, 4).map(c => (
+                  <div key={c.id} className="card card-interactive" style={{ padding: 'var(--s-4)', display: 'flex', gap: 'var(--s-4)', alignItems: 'center' }}>
+                    <div style={{ 
+                      width: '70px', height: '70px', borderRadius: 'var(--radius-md)', 
+                      background: 'rgba(255,255,255,0.05)', display: 'flex', 
+                      alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                      border: '1px solid var(--border)'
+                    }}>
                       {c.image ? (
-                        <img src={c.image} alt="Report" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '1rem' }} />
+                        <img src={c.image} alt="Report" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
-                        <AlertTriangle size={32} color="var(--text-muted)" />
+                        <AlertTriangle size={28} color="var(--text-dim)" />
                       )}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                        <h4 style={{ fontSize: '1.1rem' }}>{c.title}</h4>
+                      <div className="flex-between mb-8" style={{ marginBottom: '0.25rem' }}>
+                        <h4 style={{ fontSize: '1.1rem', margin: 0 }}>{c.title}</h4>
                         <span className={`badge badge-${c.status === 'in-progress' ? 'progress' : c.status}`}>{c.status}</span>
                       </div>
-                      <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><MapPin size={14} /> {c.location}</span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Clock size={14} /> {new Date(c.createdAt).toLocaleDateString()}</span>
+                      <div style={{ display: 'flex', gap: '1.5rem', color: 'var(--text-dim)', fontSize: '0.85rem' }}>
+                        <span className="flex-center" style={{ gap: '0.3rem' }}><MapPin size={14} /> {c.location}</span>
+                        <span className="flex-center" style={{ gap: '0.3rem' }}><Clock size={14} /> {new Date(c.createdAt).toLocaleDateString()}</span>
                       </div>
                     </div>
-                    <ChevronRight color="var(--text-muted)" />
+                    <button className="icon-button"><ChevronRight size={20} /></button>
                   </div>
                 ))
               )}
             </div>
           </section>
 
-          {/* Environmental Leaderboard Snippet */}
-          <section>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ fontSize: '1.5rem' }}>Leaderboard</h3>
-              <Trophy size={24} color="#f59e0b" />
+          {/* Right Column: Leaderboard & Actions */}
+          <aside>
+            <div className="flex-between mb-8">
+              <h3>Community Leaders</h3>
+              <Trophy size={20} color="var(--warning)" />
             </div>
             
-            <div className="card" style={{ padding: '1.5rem' }}>
+            <div className="card mb-8">
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 {[1, 2, 3].map(i => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <span style={{ fontSize: '1.1rem', fontWeight: 700, color: i === 1 ? '#f59e0b' : 'var(--text-muted)', width: '20px' }}>{i}</span>
-                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary)', opacity: 1 - (i*0.2), display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                        U
+                  <div key={i} className="flex-between">
+                    <div className="flex-center" style={{ gap: '1rem' }}>
+                      <span style={{ fontSize: '1.1rem', fontWeight: 800, color: i === 1 ? 'var(--warning)' : 'var(--text-muted)', width: '24px' }}>{i}</span>
+                      <div style={{ 
+                        width: '40px', height: '40px', borderRadius: 'var(--radius-full)', 
+                        background: 'linear-gradient(135deg, var(--primary), var(--secondary))', 
+                        opacity: 1 - (i*0.2), display: 'flex', alignItems: 'center', 
+                        justifyContent: 'center', fontWeight: '800', fontSize: '0.75rem' 
+                      }}>
+                        {String.fromCharCode(64 + i)}C
                       </div>
                       <div>
-                        <p style={{ fontSize: '1rem', fontWeight: 600 }}>Top Citizen {i}</p>
-                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>2{50 - i*20} Points</p>
+                        <p style={{ fontWeight: 700, margin: 0, fontSize: '0.95rem' }}>Citizen {String.fromCharCode(64 + i)}</p>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', margin: 0 }}>{3000 - i*250} Impact Points</p>
                       </div>
                     </div>
                     {i === 1 && <ArrowUpRight size={18} color="var(--primary)" />}
                   </div>
                 ))}
               </div>
-              <button className="btn btn-outline" style={{ width: '100%', marginTop: '2rem' }}>View Full Leaderboard</button>
+              <button className="btn btn-outline" style={{ width: '100%', marginTop: '2rem' }}>Full Ranking <ExternalLink size={14} /></button>
             </div>
 
-            {/* Quick Action FAB Placeholder */}
-            <div style={{ marginTop: '2rem' }}>
-              <button className="btn btn-primary" style={{ width: '100%', padding: '1.25rem', borderRadius: '1.5rem', fontSize: '1.1rem' }}>
-                <Plus size={24} /> Report Environmental Issue
+            {/* Floating Action Button Replacement */}
+            <div className="card-glass" style={{ padding: '1.5rem', borderRadius: 'var(--radius-lg)', textAlign: 'center' }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>See something wrong in nature?</p>
+              <button className="btn btn-primary" style={{ width: '100%', padding: '1.25rem', borderRadius: 'var(--radius-md)' }}>
+                <Plus size={20} /> New Environmental Report
               </button>
             </div>
-          </section>
+          </aside>
         </div>
       </div>
     </Layout>

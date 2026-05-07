@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Search, Filter, Ghost, CheckCircle, Clock, MapPin, Users, Wrench, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
+import { Search, Filter, Ghost, CheckCircle, Clock, MapPin, Users, Wrench, ChevronDown, ChevronUp, AlertTriangle, Layers } from 'lucide-react';
 import Layout from '../components/Layout';
-import { createRipple } from './Dashboard';
 
 const API_URL = 'http://localhost:5000/api';
 
@@ -16,7 +15,6 @@ export default function Complaints() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
-  
   const [expandedCardId, setExpandedCardId] = useState(null);
 
   useEffect(() => {
@@ -26,7 +24,7 @@ export default function Complaints() {
     setUser(u);
     
     fetchComplaints(u).then(() => {
-      setTimeout(() => setIsLoading(false), 400); // UI Polish delay
+      setTimeout(() => setIsLoading(false), 600);
     });
   }, [navigate]);
 
@@ -59,147 +57,182 @@ export default function Complaints() {
     return 'low';
   };
 
-  const getAdvancedTimeline = (status, assignedTo) => {
-    const step1 = true;
-    const step2 = status === 'pending';
-    const step3 = !!assignedTo || status !== 'pending';
-    const step4 = status === 'in-progress' || status === 'resolved';
-    const step5 = status === 'resolved';
-
-    return (
-      <div className="timeline-advanced">
-        <div className={`timeline-node-wrapper ${step1 ? 'active' : ''}`}><div className={`timeline-node ${step1 ? 'active' : ''}`}><AlertTriangle size={14}/></div><span className="timeline-label">Submitted</span></div>
-        <div className={`timeline-node-wrapper ${step2 || step3 ? 'active' : ''}`}><div className={`timeline-node ${step2 || step3 ? 'active' : ''}`}><Search size={14}/></div><span className="timeline-label">Review</span></div>
-        <div className={`timeline-node-wrapper ${step3 ? 'active' : ''}`}><div className={`timeline-node ${step3 ? 'active' : ''}`}><Users size={14}/></div><span className="timeline-label">Assigned</span></div>
-        <div className={`timeline-node-wrapper ${step4 ? 'active' : ''}`}><div className={`timeline-node ${step4 ? 'active' : ''}`}><Wrench size={14}/></div><span className="timeline-label">Progress</span></div>
-        <div className={`timeline-node-wrapper ${step5 ? 'active' : ''}`}><div className={`timeline-node ${step5 ? 'active' : ''}`}><CheckCircle size={14}/></div><span className="timeline-label">Resolved</span></div>
-      </div>
-    );
-  };
-
   if (!user) return null;
 
   return (
-    <div className={user.role === 'admin' ? 'admin-bg' : 'dashboard-bg'}>
-      <Layout>
-        <div className="page-enter" style={{ paddingBottom: '1.5rem' }}>
+    <Layout>
+      <div className="fade-in">
+        {/* Header & Intelligence Controls */}
+        <div className="flex-between mb-8" style={{ flexWrap: 'wrap', gap: 'var(--s-6)' }}>
+          <div>
+            <h1 className="text-gradient">Intelligence Archive</h1>
+            <p style={{ color: 'var(--text-muted)' }}>Historical and active environmental intelligence data.</p>
+          </div>
           
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1.5rem' }}>
-            <div>
-              <h2 style={{ color: 'white', fontSize: '1.8rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <AlertTriangle color="var(--primary)" /> Complaint Database
-              </h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0.2rem 0 0 0' }}>Manage and track environmental reports.</p>
+          <div className="flex-center" style={{ gap: 'var(--s-4)', flexWrap: 'wrap' }}>
+            <div className="search-bar" style={{ width: '300px' }}>
+              <Search size={18} className="search-icon" />
+              <input 
+                type="text" 
+                placeholder="Search coordinates or titles..." 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+              />
             </div>
             
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              <div className="search-bar" style={{ width: '250px' }}>
-                <Search size={16} className="search-icon" />
-                <input type="text" placeholder="Search reports..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ padding: '0.6rem 1.25rem 0.6rem 2.75rem', fontSize: '0.85rem' }} />
-              </div>
-              <div style={{ display: 'flex', gap: '0.25rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '99px', padding: '0.15rem 0.5rem', height: 'fit-content' }}>
-                <Filter size={16} color="var(--text-muted)" style={{ alignSelf: 'center', marginLeft: '0.5rem' }} />
-                <select className="form-control" style={{ width: 'auto', border: 'none', background: 'transparent', padding: '0.4rem', fontSize: '0.85rem' }} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-                  <option value="all">All Status</option>
-                  <option value="pending">Pending</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="resolved">Resolved</option>
-                </select>
-                <select className="form-control" style={{ width: 'auto', border: 'none', background: 'transparent', borderLeft: '1px solid var(--border)', borderRadius: 0, padding: '0.4rem', fontSize: '0.85rem' }} value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
-                  <option value="all">All Categories</option>
-                  <option value="garbage">Garbage</option>
-                  <option value="air">Air</option>
-                  <option value="water">Water</option>
-                  <option value="trees">Trees</option>
-                  <option value="noise">Noise</option>
-                </select>
-              </div>
+            <div className="flex-center" style={{ 
+              background: 'rgba(255,255,255,0.02)', 
+              border: '1px solid var(--border)', 
+              borderRadius: 'var(--radius-full)', 
+              padding: '0.25rem 1rem' 
+            }}>
+              <Filter size={16} color="var(--text-dim)" style={{ marginRight: '0.5rem' }} />
+              <select className="form-control" style={{ width: 'auto', border: 'none', background: 'transparent', fontSize: '0.875rem', fontWeight: 600 }} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                <option value="all">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="in-progress">In-Progress</option>
+                <option value="resolved">Resolved</option>
+              </select>
+              <div style={{ height: '20px', width: '1px', background: 'var(--border)', margin: '0 0.75rem' }}></div>
+              <select className="form-control" style={{ width: 'auto', border: 'none', background: 'transparent', fontSize: '0.875rem', fontWeight: 600 }} value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
+                <option value="all">Categories</option>
+                <option value="garbage">Garbage</option>
+                <option value="air">Air</option>
+                <option value="water">Water</option>
+                <option value="trees">Trees</option>
+                <option value="noise">Noise</option>
+              </select>
             </div>
           </div>
+        </div>
 
-          {isLoading ? (
-            <div>
-              <div className="skeleton skeleton-box" style={{ height: '120px' }}></div>
-              <div className="skeleton skeleton-box" style={{ height: '120px' }}></div>
-              <div className="skeleton skeleton-box" style={{ height: '120px' }}></div>
-            </div>
-          ) : filteredComplaints.length === 0 ? (
-            <div className="card empty-state">
-              <Ghost size={64} color="var(--border)" />
-              <h4 style={{ color: 'white', marginBottom: '0.5rem' }}>No Reports Found</h4>
-              <p style={{ color: 'var(--text-muted)' }}>Try adjusting your filters or search terms.</p>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              {filteredComplaints.map(c => {
-                const isExpanded = expandedCardId === c.id;
-                const severity = getSeverity(c.category);
-                
-                return (
-                  <div key={c.id} className="card complaint-card" style={{ padding: '1rem 1.25rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        {/* Intelligence Feed */}
+        {isLoading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s-4)' }}>
+            {[1, 2, 3, 4].map(i => <div key={i} className="skeleton" style={{ height: '100px', borderRadius: 'var(--radius-lg)' }}></div>)}
+          </div>
+        ) : filteredComplaints.length === 0 ? (
+          <div className="card flex-center" style={{ padding: '5rem', flexDirection: 'column', textAlign: 'center' }}>
+            <Ghost size={64} color="var(--border)" style={{ marginBottom: '1.5rem', opacity: 0.3 }} />
+            <h3 style={{ color: 'var(--text-muted)' }}>No Intelligence Data</h3>
+            <p style={{ color: 'var(--text-dim)' }}>Adjust filters or deployment criteria.</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s-4)' }}>
+            {filteredComplaints.map(c => {
+              const isExpanded = expandedCardId === c.id;
+              const severity = getSeverity(c.category);
+              
+              return (
+                <div key={c.id} className={`card ${isExpanded ? '' : 'card-interactive'}`} style={{ padding: '1.25rem 1.5rem' }}>
+                  <div className="flex-between">
+                    <div className="flex-center" style={{ gap: '1.5rem', justifyContent: 'flex-start' }}>
+                      <div style={{ 
+                        width: '50px', height: '50px', borderRadius: 'var(--radius-md)', 
+                        background: 'rgba(255,255,255,0.03)', display: 'flex', 
+                        alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' 
+                      }}>
+                        <Layers size={24} color={severity === 'high' ? 'var(--danger)' : severity === 'medium' ? 'var(--warning)' : 'var(--primary)'} />
+                      </div>
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                          <h4 style={{ fontSize: '1.2rem', margin: 0 }}>{c.title}</h4>
-                          <span className={`badge badge-severity-${severity}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>
-                            {severity.toUpperCase()} SEVERITY
+                        <div className="flex-center" style={{ justifyContent: 'flex-start', gap: '0.75rem', marginBottom: '0.25rem' }}>
+                          <h4 style={{ margin: 0 }}>{c.title}</h4>
+                          <span style={{ 
+                            fontSize: '0.65rem', fontWeight: 800, padding: '0.1rem 0.5rem', 
+                            borderRadius: '4px', background: severity === 'high' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255,255,255,0.05)',
+                            color: severity === 'high' ? 'var(--danger)' : 'var(--text-dim)', border: '1px solid rgba(255,255,255,0.05)'
+                          }}>
+                            {severity.toUpperCase()} PRIORITY
                           </span>
                         </div>
-                        <div style={{ display: 'flex', gap: '1.5rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><MapPin size={14} /> {c.location}</span>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Clock size={14} /> {new Date(c.createdAt).toLocaleDateString()}</span>
+                        <div className="flex-center" style={{ gap: '1.5rem', color: 'var(--text-dim)', fontSize: '0.85rem' }}>
+                          <span className="flex-center" style={{ gap: '0.3rem' }}><MapPin size={14} /> {c.location}</span>
+                          <span className="flex-center" style={{ gap: '0.3rem' }}><Clock size={14} /> {new Date(c.createdAt).toLocaleDateString()}</span>
                         </div>
-                      </div>
-                      
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
-                        <span className={`badge badge-${c.status === 'in-progress' ? 'progress' : c.status}`}>
-                          {c.status.toUpperCase()}
-                        </span>
-                        <button 
-                          className="icon-button" 
-                          onClick={() => setExpandedCardId(isExpanded ? null : c.id)}
-                          style={{ color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.85rem' }}
-                        >
-                          {isExpanded ? 'Hide Details' : 'View Tracking'} {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                        </button>
                       </div>
                     </div>
                     
-                    <div className={`expandable-content ${isExpanded ? 'expanded' : ''}`}>
-                      <hr style={{ margin: '1rem 0', borderColor: 'var(--border)' }} />
-                      <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-                        <div style={{ flex: 1, minWidth: '250px' }}>
-                          <p style={{ fontSize: '0.95rem', color: 'var(--text-main)', marginBottom: '1rem' }}>{c.desc}</p>
-                          {c.assignedTo && (
-                            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                              <strong>Assigned Team:</strong> {c.assignedTo}
-                            </p>
-                          )}
-                          {user.role === 'admin' && (
-                            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                              <strong>Reported By:</strong> {c.citizen?.name || 'Citizen'}
-                            </p>
-                          )}
+                    <div className="flex-center" style={{ gap: '1.5rem' }}>
+                      <span className={`badge badge-${c.status === 'in-progress' ? 'progress' : c.status}`}>
+                        {c.status}
+                      </span>
+                      <button 
+                        className="btn btn-ghost" 
+                        onClick={() => setExpandedCardId(isExpanded ? null : c.id)}
+                        style={{ padding: '0.5rem' }}
+                      >
+                        {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {isExpanded && (
+                    <div className="fade-in" style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 180px', gap: '2rem' }}>
+                        <div>
+                          <p style={{ color: 'var(--text-main)', fontSize: '1rem', lineHeight: 1.6 }}>{c.desc}</p>
+                          <div style={{ marginTop: '1.5rem', display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+                            <div>
+                              <p className="form-label">Assigned Operatives</p>
+                              <div className="flex-center" style={{ gap: '0.5rem', justifyContent: 'flex-start' }}>
+                                <Users size={16} color="var(--primary)" />
+                                <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{c.assignedTo || 'Unassigned'}</span>
+                              </div>
+                            </div>
+                            <div>
+                              <p className="form-label">Classification</p>
+                              <span className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'white' }}>{c.category}</span>
+                            </div>
+                          </div>
                         </div>
                         {c.image && (
-                          <div style={{ width: '150px' }}>
-                            <img src={c.image} alt="proof" style={{ width: '100%', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }} />
+                          <div style={{ position: 'relative' }}>
+                            <img src={c.image} alt="Intelligence Proof" style={{ width: '100%', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }} />
+                            <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'rgba(0,0,0,0.6)', padding: '0.25rem', borderRadius: '4px' }}>
+                              <CheckCircle size={14} color="var(--primary)" />
+                            </div>
                           </div>
                         )}
                       </div>
 
-                      <div style={{ marginTop: '1.5rem', padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-md)' }}>
-                        <h5 style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>LIVE TRACKING TIMELINE</h5>
-                        {getAdvancedTimeline(c.status, c.assignedTo)}
+                      {/* Simplified Tracking Timeline */}
+                      <div className="card-glass mt-4" style={{ padding: '1rem', borderRadius: 'var(--radius-md)' }}>
+                        <div className="flex-between">
+                          <p style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-dim)' }}>INTELLIGENCE TRACKING STATUS</p>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 700 }}>LIVE SYNC ACTIVE</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', position: 'relative' }}>
+                          <div style={{ position: 'absolute', top: '10px', left: '5%', right: '5%', height: '2px', background: 'var(--border)', zIndex: 0 }}></div>
+                          <div style={{ position: 'absolute', top: '10px', left: '5%', width: c.status === 'resolved' ? '90%' : c.status === 'in-progress' ? '50%' : '0%', height: '2px', background: 'var(--primary)', zIndex: 1, transition: 'width 1s ease' }}></div>
+                          {[
+                            { label: 'Logged', icon: <Clock size={12} />, active: true },
+                            { label: 'Assigned', icon: <Users size={12} />, active: !!c.assignedTo || c.status !== 'pending' },
+                            { label: 'Neutralizing', icon: <Wrench size={12} />, active: c.status === 'in-progress' || c.status === 'resolved' },
+                            { label: 'Resolved', icon: <CheckCircle size={12} />, active: c.status === 'resolved' }
+                          ].map((step, i) => (
+                            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', zIndex: 2 }}>
+                              <div style={{ 
+                                width: '22px', height: '22px', borderRadius: '50%', 
+                                background: step.active ? 'var(--primary)' : 'var(--bg-base)', 
+                                border: '2px solid', borderColor: step.active ? 'var(--primary)' : 'var(--border)',
+                                color: step.active ? 'white' : 'var(--text-dim)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                              }}>
+                                {step.icon}
+                              </div>
+                              <span style={{ fontSize: '0.65rem', fontWeight: 700, color: step.active ? 'var(--text-main)' : 'var(--text-dim)' }}>{step.label}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </Layout>
-    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </Layout>
   );
 }

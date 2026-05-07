@@ -1,176 +1,118 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Trophy, Medal, Star, TrendingUp, Users, Search } from 'lucide-react';
+import { Trophy, Zap, Award, Star, TrendingUp, Users, ArrowUpRight } from 'lucide-react';
 import Layout from '../components/Layout';
 
 const API_URL = 'http://localhost:5000/api';
 
 export default function Leaderboard() {
-  const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [leaderboard, setLeaderboard] = useState([]);
+  const [leaders, setLeaders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const userStr = localStorage.getItem('greenwatch_current_user');
-    if (!userStr) return navigate('/');
-    const u = JSON.parse(userStr);
-    setUser(u);
-    
-    fetchAndCalculateLeaderboard().then(() => {
-      setTimeout(() => setIsLoading(false), 400);
-    });
-  }, [navigate]);
+    fetchLeaders();
+  }, []);
 
-  const fetchAndCalculateLeaderboard = async () => {
+  const fetchLeaders = async () => {
     try {
-      const res = await axios.get(`${API_URL}/complaints`);
-      const complaints = res.data;
-      
-      const userScores = {};
-
-      complaints.forEach(c => {
-        if (!c.citizen) return;
-        const cId = c.citizen.id;
-        if (!userScores[cId]) {
-          userScores[cId] = {
-            id: cId,
-            name: c.citizen.name,
-            totalReports: 0,
-            resolvedReports: 0,
-            score: 0
-          };
-        }
-        
-        userScores[cId].totalReports += 1;
-        if (c.status === 'resolved') {
-          userScores[cId].resolvedReports += 1;
-        }
-      });
-
-      // Calculate dynamic score: 50 pts per resolved, 10 pts per pending/in-progress
-      const rankedUsers = Object.values(userScores).map(u => ({
-        ...u,
-        score: (u.resolvedReports * 50) + (u.totalReports * 10)
-      })).sort((a, b) => b.score - a.score);
-
-      setLeaderboard(rankedUsers);
+      const res = await axios.get(`${API_URL}/auth/leaderboard`);
+      setLeaders(res.data);
     } catch (err) {
       console.error(err);
+    } finally {
+      setTimeout(() => setIsLoading(false), 800);
     }
   };
 
-  const getRankBadge = (index) => {
-    if (index === 0) return <div style={{ background: 'linear-gradient(135deg, #FFD700, #FDB931)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}><Trophy size={28} /></div>;
-    if (index === 1) return <div style={{ color: '#C0C0C0' }}><Medal size={28} /></div>;
-    if (index === 2) return <div style={{ color: '#CD7F32' }}><Medal size={28} /></div>;
-    return <span style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-muted)', width: '28px', textAlign: 'center' }}>#{index + 1}</span>;
-  };
-
-  if (!user) return null;
-
   return (
-    <div className={user.role === 'admin' ? 'admin-bg' : 'dashboard-bg'}>
-      <Layout>
-        <div className="page-enter" style={{ paddingBottom: '1.5rem', maxWidth: '900px', margin: '0 auto' }}>
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1.5rem' }}>
-            <div style={{ textAlign: 'left' }}>
-              <h2 style={{ color: 'white', fontSize: '1.8rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
-                <Trophy size={28} color="var(--primary)" /> Leaderboard
-              </h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: '0.2rem 0 0 0' }}>
-                Environmental champions and community rankings.
-              </p>
-            </div>
-            
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              <div className="search-bar" style={{ width: '220px' }}>
-                <Search size={16} className="search-icon" />
-                <input type="text" placeholder="Search citizens..." style={{ padding: '0.5rem 1.25rem 0.5rem 2.5rem', fontSize: '0.8rem' }} />
-              </div>
-              <div className="card" style={{ padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1.5rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '99px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
-                   <span style={{ color: 'var(--primary)', fontWeight: 800 }}>{leaderboard.length}</span> <span style={{ color: 'var(--text-muted)' }}>Citizens</span>
-                </div>
-              </div>
+    <Layout>
+      <div className="fade-in" style={{ maxWidth: '1000px', margin: '0 auto' }}>
+        <div className="flex-between mb-8">
+          <div>
+            <h1 className="text-gradient">Environmental Elite</h1>
+            <p style={{ color: 'var(--text-muted)' }}>Top contributors in the global sustainability movement.</p>
+          </div>
+          <div style={{ padding: '0.75rem 1.25rem', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <Trophy color="var(--warning)" size={24} />
+            <div>
+              <p style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--warning)', margin: 0, textTransform: 'uppercase' }}>Season Rank</p>
+              <p style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>Top 5%</p>
             </div>
           </div>
-
-          <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-            <div style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Star size={18} color="var(--primary)" /> Global Rankings
-              </h3>
-              <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><TrendingUp size={14} /> 50pts / Resolved</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Users size={14} /> 10pts / Report</span>
-              </div>
-            </div>
-
-            <div style={{ padding: '1rem' }}>
-              {isLoading ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {[1,2,3,4,5].map(i => <div key={i} className="skeleton skeleton-box" style={{ height: '70px', borderRadius: 'var(--radius-sm)' }}></div>)}
-                </div>
-              ) : leaderboard.length === 0 ? (
-                <div className="empty-state" style={{ padding: '3rem 0' }}>
-                  <p style={{ color: 'var(--text-muted)' }}>No data available yet. Be the first to report an issue!</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {leaderboard.map((lbUser, index) => {
-                    const isCurrentUser = lbUser.id === user.id;
-                    const isTop3 = index < 3;
-                    
-                    return (
-                      <div 
-                        key={lbUser.id} 
-                        className={`page-enter`} 
-                        style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          padding: '1rem 1.5rem', 
-                          background: isCurrentUser ? 'rgba(16, 185, 129, 0.1)' : (isTop3 ? 'rgba(255,255,255,0.03)' : 'transparent'),
-                          border: isCurrentUser ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid transparent',
-                          borderBottom: !isCurrentUser ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(16, 185, 129, 0.3)',
-                          borderRadius: 'var(--radius-sm)',
-                          transition: 'background 0.2s',
-                          animationDelay: `${index * 0.05}s`
-                        }}
-                      >
-                        <div style={{ width: '60px', display: 'flex', justifyContent: 'center', marginRight: '1rem' }}>
-                          {getRankBadge(index)}
-                        </div>
-                        
-                        <div style={{ flex: 1 }}>
-                          <h4 style={{ margin: '0 0 0.2rem 0', fontSize: '1.1rem', color: isCurrentUser ? 'var(--primary)' : 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            {lbUser.name} {isCurrentUser && <span className="badge badge-resolved" style={{ fontSize: '0.6rem' }}>YOU</span>}
-                          </h4>
-                          <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            <span>Total Reports: {lbUser.totalReports}</span>
-                            <span>•</span>
-                            <span>Resolved: <strong style={{ color: 'var(--success)' }}>{lbUser.resolvedReports}</strong></span>
-                          </div>
-                        </div>
-                        
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: isTop3 ? 'var(--primary)' : 'var(--text-main)', textShadow: isTop3 ? '0 0 10px rgba(16,185,129,0.3)' : 'none' }}>
-                            {lbUser.score}
-                          </div>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>Points</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
         </div>
-      </Layout>
-    </div>
+
+        {/* Top 3 Podium */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1fr', gap: 'var(--s-6)', alignItems: 'flex-end', marginBottom: 'var(--s-12)' }}>
+          {isLoading ? (
+            [1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: i === 2 ? '300px' : '220px', borderRadius: 'var(--radius-lg)' }}></div>)
+          ) : (
+            <>
+              {/* Rank 2 */}
+              <div className="card" style={{ textAlign: 'center', padding: '2rem', background: 'rgba(255,255,255,0.03)' }}>
+                <Award size={32} color="#94a3b8" style={{ marginBottom: '1rem' }} />
+                <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--secondary)', margin: '0 auto 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 800 }}>{leaders[1]?.name.charAt(0)}</div>
+                <h4 style={{ marginBottom: '0.25rem' }}>{leaders[1]?.name || 'Guardian'}</h4>
+                <p style={{ color: 'var(--secondary-light)', fontWeight: 800 }}>{leaders[1]?.points || 0} pts</p>
+              </div>
+
+              {/* Rank 1 */}
+              <div className="card" style={{ textAlign: 'center', padding: '3rem', border: '1px solid var(--warning)', boxShadow: '0 0 30px rgba(245, 158, 11, 0.1)' }}>
+                <Trophy size={48} color="var(--warning)" style={{ marginBottom: '1rem' }} />
+                <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--warning)', margin: '0 auto 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 800, color: 'var(--bg-base)' }}>{leaders[0]?.name.charAt(0)}</div>
+                <h3 style={{ marginBottom: '0.5rem' }}>{leaders[0]?.name || 'Champion'}</h3>
+                <p style={{ color: 'var(--warning)', fontSize: '1.25rem', fontWeight: 900 }}>{leaders[0]?.points || 0} pts</p>
+                <div className="badge badge-resolved mt-4">Earth Guardian</div>
+              </div>
+
+              {/* Rank 3 */}
+              <div className="card" style={{ textAlign: 'center', padding: '2rem', background: 'rgba(255,255,255,0.03)' }}>
+                <Star size={32} color="#b45309" style={{ marginBottom: '1rem' }} />
+                <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#b45309', margin: '0 auto 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 800 }}>{leaders[2]?.name.charAt(0)}</div>
+                <h4 style={{ marginBottom: '0.25rem' }}>{leaders[2]?.name || 'Protector'}</h4>
+                <p style={{ color: '#f59e0b', fontWeight: 800 }}>{leaders[2]?.points || 0} pts</p>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Global Rankings Table */}
+        <div className="card">
+          <div className="flex-between mb-8">
+            <h3>Global Impact Ranking</h3>
+            <div className="flex-center" style={{ gap: '1rem', color: 'var(--text-dim)', fontSize: '0.85rem' }}>
+              <Users size={16} /> <span>12,450 Active Members</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s-2)' }}>
+            {isLoading ? (
+              [1, 2, 3, 4, 5].map(i => <div key={i} className="skeleton" style={{ height: '70px', borderRadius: 'var(--radius-md)' }}></div>)
+            ) : (
+              leaders.slice(3).map((l, i) => (
+                <div key={l.id} className="card-glass flex-between" style={{ padding: '1rem 1.5rem', borderRadius: 'var(--radius-md)' }}>
+                  <div className="flex-center" style={{ gap: '1.5rem' }}>
+                    <span style={{ width: '24px', fontWeight: 800, color: 'var(--text-dim)' }}>{i + 4}</span>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>{l.name.charAt(0)}</div>
+                    <div>
+                      <p style={{ fontWeight: 700, margin: 0 }}>{l.name}</p>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', margin: 0 }}>Sustainability Level {Math.floor(l.points/500) + 1}</p>
+                    </div>
+                  </div>
+                  <div className="flex-center" style={{ gap: '1rem' }}>
+                    <div style={{ textAlign: 'right' }}>
+                      <p style={{ fontWeight: 800, margin: 0, color: 'var(--primary-light)' }}>{l.points} pts</p>
+                      <div className="flex-center" style={{ gap: '0.25rem', justifyContent: 'flex-end', color: 'var(--success)', fontSize: '0.7rem' }}>
+                        <TrendingUp size={10} /> +12% this week
+                      </div>
+                    </div>
+                    <ArrowUpRight size={18} color="var(--border)" />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </Layout>
   );
 }

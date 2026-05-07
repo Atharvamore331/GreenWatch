@@ -1,151 +1,122 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Bell, CheckCircle, Ghost, Clock, Search } from 'lucide-react';
+import { Bell, MessageSquare, Check, Trash2, Clock, Inbox, Filter } from 'lucide-react';
 import Layout from '../components/Layout';
-import { createRipple } from './Dashboard';
 
 const API_URL = 'http://localhost:5000/api';
 
 export default function Notifications() {
-  const navigate = useNavigate();
-  const [user, setUser] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    const userStr = localStorage.getItem('greenwatch_current_user');
-    if (!userStr) return navigate('/');
-    const u = JSON.parse(userStr);
-    setUser(u);
-    
-    fetchNotifications(u.id).then(() => {
-      setTimeout(() => setIsLoading(false), 300);
-    });
-  }, [navigate]);
+    fetchNotifications();
+  }, []);
 
-  const fetchNotifications = async (userId) => {
+  const fetchNotifications = async () => {
+    const user = JSON.parse(localStorage.getItem('greenwatch_current_user'));
+    if (!user) return;
     try {
-      const res = await axios.get(`${API_URL}/notifications/${userId}`);
-      setNotifications(res.data);
+      const res = await axios.get(`${API_URL}/notifications/${user.id}`);
+      setNotifications(res.data.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setTimeout(() => setIsLoading(false), 600);
+    }
+  };
+
+  const markAllRead = async () => {
+    const user = JSON.parse(localStorage.getItem('greenwatch_current_user'));
+    try {
+      await axios.patch(`${API_URL}/notifications/read-all/${user.id}`);
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     } catch (err) {
       console.error(err);
     }
   };
 
-  const markAsRead = async (e, id) => {
-    e.stopPropagation();
-    createRipple(e);
+  const deleteNotification = async (id) => {
     try {
-      await axios.patch(`${API_URL}/notifications/${id}/read`);
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+      await axios.delete(`${API_URL}/notifications/${id}`);
+      setNotifications(prev => prev.filter(n => n.id !== id));
     } catch (err) {
       console.error(err);
     }
   };
 
-  const markAllAsRead = async (e) => {
-    createRipple(e);
-    const unread = notifications.filter(n => !n.isRead);
-    for (let n of unread) {
-      try {
-        await axios.patch(`${API_URL}/notifications/${n.id}/read`);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-  };
-
-  if (!user) return null;
-
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const filteredNotifs = notifications.filter(n => filter === 'all' || !n.isRead);
 
   return (
-    <div className={user.role === 'admin' ? 'admin-bg' : 'dashboard-bg'}>
-      <Layout>
-        <div className="page-enter" style={{ paddingBottom: '1.5rem', maxWidth: '800px', margin: '0 auto' }}>
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1.5rem' }}>
-            <div>
-              <h2 style={{ color: 'white', fontSize: '1.8rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <Bell color="var(--primary)" /> Notifications
-                {unreadCount > 0 && (
-                  <span className="badge badge-pending" style={{ fontSize: '0.7rem', marginLeft: '0.5rem' }}>
-                    {unreadCount} Unread
-                  </span>
-                )}
-              </h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0.2rem 0 0 0' }}>Your recent activity and updates.</p>
-            </div>
-            
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              <div className="search-bar" style={{ width: '220px' }}>
-                <Search size={16} className="search-icon" />
-                <input type="text" placeholder="Search activity..." style={{ padding: '0.5rem 1.25rem 0.5rem 2.5rem', fontSize: '0.8rem' }} />
-              </div>
-              {unreadCount > 0 && (
-                <button className="btn btn-outline ripple-btn" onMouseDown={markAllAsRead} style={{ padding: '0.6rem 1.25rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <CheckCircle size={16} /> Mark all as read
-                </button>
-              )}
-            </div>
+    <Layout>
+      <div className="fade-in" style={{ maxWidth: '900px', margin: '0 auto' }}>
+        <div className="flex-between mb-8">
+          <div>
+            <h1 className="text-gradient">Activity Stream</h1>
+            <p style={{ color: 'var(--text-muted)' }}>Stay updated with environmental deployments and community actions.</p>
+          </div>
+          <div className="flex-center" style={{ gap: 'var(--s-4)' }}>
+            <button className="btn btn-outline" onClick={markAllRead} disabled={!notifications.some(n => !n.isRead)}>
+              <Check size={18} /> Mark all read
+            </button>
+          </div>
+        </div>
+
+        <div className="card mb-8" style={{ padding: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '2rem', padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-light)' }}>
+            <button 
+              className={`notif-tab ${filter === 'all' ? 'active' : ''}`} 
+              onClick={() => setFilter('all')}
+              style={{ fontSize: '1rem' }}
+            >
+              All Logs
+            </button>
+            <button 
+              className={`notif-tab ${filter === 'unread' ? 'active' : ''}`} 
+              onClick={() => setFilter('unread')}
+              style={{ fontSize: '1rem' }}
+            >
+              Unread
+            </button>
           </div>
 
-          {isLoading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div className="skeleton skeleton-box" style={{ height: '80px', borderRadius: 'var(--radius-md)' }}></div>
-              <div className="skeleton skeleton-box" style={{ height: '80px', borderRadius: 'var(--radius-md)' }}></div>
-              <div className="skeleton skeleton-box" style={{ height: '80px', borderRadius: 'var(--radius-md)' }}></div>
-            </div>
-          ) : notifications.length === 0 ? (
-            <div className="card empty-state" style={{ padding: '3rem 2rem' }}>
-              <Ghost size={64} color="var(--border)" />
-              <h4 style={{ color: 'white', marginBottom: '0.5rem' }}>All Caught Up!</h4>
-              <p style={{ color: 'var(--text-muted)' }}>You don't have any notifications at the moment.</p>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {notifications.map(n => (
-                <div 
-                  key={n.id} 
-                  className={`card page-enter`} 
-                  style={{ 
-                    padding: '1rem 1.25rem', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'space-between',
-                    gap: '1.25rem',
-                    borderLeft: !n.isRead ? '3px solid var(--primary)' : '3px solid transparent',
-                    background: !n.isRead ? 'rgba(255,255,255,0.03)' : 'rgba(15, 23, 42, 0.4)'
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <p style={{ color: !n.isRead ? 'white' : 'var(--text-muted)', margin: '0 0 0.5rem 0', fontSize: '1rem', lineHeight: 1.4 }}>
-                      {n.message}
-                    </p>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                      <Clock size={12} /> {new Date(n.createdAt).toLocaleString()}
-                    </span>
+          <div style={{ minHeight: '400px' }}>
+            {isLoading ? (
+              [1, 2, 3, 4].map(i => <div key={i} className="skeleton" style={{ height: '80px', margin: '1rem', borderRadius: 'var(--radius-md)' }}></div>)
+            ) : filteredNotifs.length === 0 ? (
+              <div className="flex-center" style={{ flexDirection: 'column', padding: '5rem', textAlign: 'center' }}>
+                <Inbox size={48} color="var(--border)" style={{ marginBottom: '1.5rem', opacity: 0.3 }} />
+                <h4 style={{ color: 'var(--text-muted)' }}>Quiet for now</h4>
+                <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>No new intelligence alerts at this moment.</p>
+              </div>
+            ) : (
+              filteredNotifs.map(n => (
+                <div key={n.id} className={`notification-card ${!n.isRead ? 'unread' : ''}`} style={{ borderBottom: '1px solid var(--border-light)', padding: '1.5rem' }}>
+                  <div style={{ 
+                    width: '40px', height: '40px', borderRadius: '10px', 
+                    background: !n.isRead ? 'var(--primary-glow)' : 'rgba(255,255,255,0.03)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                  }}>
+                    <MessageSquare size={20} color={!n.isRead ? 'var(--primary)' : 'var(--text-dim)'} />
                   </div>
-                  
-                  {!n.isRead && (
-                    <button 
-                      className="icon-button ripple-btn" 
-                      onMouseDown={(e) => markAsRead(e, n.id)} 
-                      title="Mark as read"
-                      style={{ color: 'var(--primary)', background: 'rgba(16, 185, 129, 0.1)', padding: '0.5rem', borderRadius: '50%' }}
-                    >
-                      <CheckCircle size={20} />
-                    </button>
-                  )}
+                  <div style={{ flex: 1 }}>
+                    <div className="flex-between" style={{ marginBottom: '0.25rem' }}>
+                      <p style={{ margin: 0, fontWeight: !n.isRead ? 700 : 500, fontSize: '1rem' }}>{n.message}</p>
+                      <button className="icon-button" onClick={() => deleteNotification(n.id)} style={{ padding: '0.25rem' }}>
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                    <div className="flex-center" style={{ gap: '0.5rem', justifyContent: 'flex-start', color: 'var(--text-dim)', fontSize: '0.8rem' }}>
+                      <Clock size={14} /> {new Date(n.createdAt).toLocaleString()}
+                    </div>
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-          
+              ))
+            )}
+          </div>
         </div>
-      </Layout>
-    </div>
+      </div>
+    </Layout>
   );
 }

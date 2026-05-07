@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import { Shield, TrendingUp, AlertCircle, CheckCircle, Download, LayoutGrid, List } from 'lucide-react';
+import { Shield, TrendingUp, AlertCircle, CheckCircle, Download, LayoutGrid, List, MapPin, Search } from 'lucide-react';
 import Layout from '../components/Layout';
 
 const API_URL = 'http://localhost:5000/api';
@@ -10,7 +10,6 @@ export default function Admin() {
   const [complaints, setComplaints] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
-  const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -25,7 +24,7 @@ export default function Admin() {
     } catch (err) {
       console.error(err);
     } finally {
-      setIsLoading(false);
+      setTimeout(() => setIsLoading(false), 800);
     }
   };
 
@@ -47,7 +46,7 @@ export default function Admin() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "greenwatch_reports.csv");
+    link.setAttribute("download", "greenwatch_intelligence_export.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -60,86 +59,87 @@ export default function Admin() {
   });
 
   const stats = [
-    { label: 'Pending', count: complaints.filter(c => c.status === 'pending').length, color: 'var(--warning)', icon: <AlertCircle /> },
-    { label: 'In Progress', count: complaints.filter(c => c.status === 'in-progress').length, color: 'var(--secondary)', icon: <TrendingUp /> },
-    { label: 'Resolved', count: complaints.filter(c => c.status === 'resolved').length, color: 'var(--primary)', icon: <CheckCircle /> },
+    { label: 'Pending Critical', count: complaints.filter(c => c.status === 'pending').length, color: 'var(--warning)', icon: <AlertCircle size={20} /> },
+    { label: 'Intelligence In Progress', count: complaints.filter(c => c.status === 'in-progress').length, color: 'var(--secondary)', icon: <TrendingUp size={20} /> },
+    { label: 'Successfully Resolved', count: complaints.filter(c => c.status === 'resolved').length, color: 'var(--primary)', icon: <CheckCircle size={20} /> },
   ];
 
   return (
     <Layout>
-      <div className="admin-dashboard">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div className="fade-in">
+        {/* Header Section */}
+        <div className="flex-between mb-8">
           <div>
-            <h1 style={{ fontSize: '2.25rem', marginBottom: '0.5rem' }}>Admin Command Center</h1>
-            <p style={{ color: 'var(--text-muted)' }}>Environmental Intelligence & Crisis Management</p>
+            <h1 className="text-gradient">Command Intelligence</h1>
+            <p style={{ color: 'var(--text-muted)' }}>Global Environmental Crisis Management System</p>
           </div>
           <button onClick={downloadCSV} className="btn btn-primary">
-            <Download size={18} /> Export Data
+            <Download size={18} /> Export Intel (CSV)
           </button>
         </div>
 
         {/* Stats Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
-          {stats.map((s, i) => (
-            <div key={i} className="card" style={{ padding: '1.5rem', borderLeft: `4px solid ${s.color}` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>{s.label} Reports</p>
-                  <h2 style={{ fontSize: '2.5rem', color: s.color }}>{s.count}</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 'var(--s-6)', marginBottom: 'var(--s-12)' }}>
+          {isLoading ? (
+            [1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: '120px', borderRadius: 'var(--radius-lg)' }}></div>)
+          ) : (
+            stats.map((s, i) => (
+              <div key={i} className="card" style={{ borderLeft: `4px solid ${s.color}` }}>
+                <div className="flex-between">
+                  <div>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>{s.label}</p>
+                    <h2 style={{ color: s.color, fontWeight: 800, fontSize: '2.5rem' }}>{s.count}</h2>
+                  </div>
+                  <div style={{ color: s.color, opacity: 0.8, background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: 'var(--radius-md)' }}>
+                    {s.icon}
+                  </div>
                 </div>
-                <div style={{ color: s.color, opacity: 0.8 }}>{s.icon}</div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
-        {/* Heatmap & Management Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', marginBottom: '2.5rem' }}>
-          <div className="card" style={{ minHeight: '400px' }}>
-            <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <Shield size={20} color="var(--primary)" /> Environmental Intelligence Heatmap
+        {/* Intelligence Heatmap */}
+        <div className="card mb-8" style={{ minHeight: '450px' }}>
+          <div className="flex-between mb-8">
+            <h3 className="flex-center" style={{ gap: '0.75rem' }}>
+              <Shield size={20} color="var(--primary)" /> Real-time Anomaly Heatmap
             </h3>
-            <div style={{ height: '300px', width: '100%', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-              <MapContainer center={[12.9716, 77.5946]} zoom={12} style={{ height: '100%', width: '100%' }}>
-                <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
-                {filteredComplaints.map(c => (
-                  c.lat && c.lng && (
-                    <Marker key={c.id} position={[c.lat, c.lng]}>
-                      <Popup>
-                        <div style={{ color: '#000' }}>
-                          <p><strong>{c.title}</strong></p>
-                          <p>{c.location}</p>
-                        </div>
-                      </Popup>
-                    </Marker>
-                  )
-                ))}
-              </MapContainer>
+            <div style={{ display: 'flex', gap: 'var(--s-4)' }}>
+              <button className="btn btn-ghost btn-sm"><LayoutGrid size={16} /> Hotspots</button>
+              <button className="btn btn-ghost btn-sm"><List size={16} /> Log View</button>
             </div>
           </div>
-
-          <div className="card">
-            <h3 style={{ marginBottom: '1.5rem' }}>Quick Actions</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <button className="btn btn-outline" style={{ width: '100%', justifyContent: 'flex-start' }}>
-                <LayoutGrid size={18} /> View All Hotspots
-              </button>
-              <button className="btn btn-outline" style={{ width: '100%', justifyContent: 'flex-start' }}>
-                <List size={18} /> Recent Activity Logs
-              </button>
-            </div>
+          <div style={{ height: '320px', width: '100%', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)' }}>
+            <MapContainer center={[12.9716, 77.5946]} zoom={12} style={{ height: '100%', width: '100%' }}>
+              <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+              {filteredComplaints.map(c => (
+                c.lat && c.lng && (
+                  <Marker key={c.id} position={[c.lat, c.lng]}>
+                    <Popup>
+                      <div style={{ color: '#1e293b', fontWeight: 600 }}>{c.title}</div>
+                      <div style={{ color: '#64748b', fontSize: '0.75rem' }}>{c.location}</div>
+                    </Popup>
+                  </Marker>
+                )
+              ))}
+            </MapContainer>
           </div>
         </div>
 
-        {/* Management Table */}
+        {/* Incident Management Table */}
         <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <h3>Manage Incidents</h3>
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <select className="form-control" style={{ width: 'auto' }} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-                <option value="all">All Statuses</option>
+          <div className="flex-between mb-8">
+            <h3>Incident Management Database</h3>
+            <div className="flex-center" style={{ gap: 'var(--s-4)' }}>
+              <div style={{ position: 'relative' }}>
+                <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                <input className="form-control" style={{ width: '220px', paddingLeft: '2.5rem', fontSize: '0.875rem' }} placeholder="Filter by ID or location..." />
+              </div>
+              <select className="form-control" style={{ width: 'auto', fontSize: '0.875rem' }} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                <option value="all">All Status</option>
                 <option value="pending">Pending</option>
-                <option value="in-progress">In Progress</option>
+                <option value="in-progress">In-Progress</option>
                 <option value="resolved">Resolved</option>
               </select>
             </div>
@@ -149,40 +149,48 @@ export default function Admin() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
-                  <th style={{ padding: '1rem', color: 'var(--text-muted)' }}>Incident</th>
-                  <th style={{ padding: '1rem', color: 'var(--text-muted)' }}>Category</th>
-                  <th style={{ padding: '1rem', color: 'var(--text-muted)' }}>Location</th>
-                  <th style={{ padding: '1rem', color: 'var(--text-muted)' }}>Status</th>
-                  <th style={{ padding: '1rem', color: 'var(--text-muted)' }}>Action</th>
+                  <th style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Intelligence ID</th>
+                  <th style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Classification</th>
+                  <th style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Coordinates/Address</th>
+                  <th style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Operation Status</th>
+                  <th style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredComplaints.map(c => (
-                  <tr key={c.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                {isLoading ? (
+                  [1, 2, 3].map(i => (
+                    <tr key={i}><td colSpan="5"><div className="skeleton" style={{ height: '50px', margin: '0.5rem 0' }}></div></td></tr>
+                  ))
+                ) : filteredComplaints.map(c => (
+                  <tr key={c.id} style={{ borderBottom: '1px solid var(--border-light)' }} className="fade-in">
                     <td style={{ padding: '1rem' }}>
-                      <div style={{ fontWeight: 600 }}>{c.title}</div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{new Date(c.createdAt).toLocaleDateString()}</div>
+                      <div style={{ fontWeight: 700 }}>{c.title}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>{new Date(c.createdAt).toLocaleString()}</div>
                     </td>
                     <td style={{ padding: '1rem' }}>
-                      <span style={{ fontSize: '0.9rem', background: 'rgba(255,255,255,0.05)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                      <span className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-main)', border: '1px solid var(--border)' }}>
                         {c.category}
                       </span>
                     </td>
-                    <td style={{ padding: '1rem', fontSize: '0.9rem' }}>{c.location}</td>
+                    <td style={{ padding: '1rem', fontSize: '0.875rem' }}>
+                      <div className="flex-center" style={{ gap: '0.4rem', justifyContent: 'flex-start', color: 'var(--text-muted)' }}>
+                        <MapPin size={14} /> {c.location}
+                      </div>
+                    </td>
                     <td style={{ padding: '1rem' }}>
                       <select 
                         className="form-control" 
-                        style={{ padding: '0.2rem 0.5rem', fontSize: '0.85rem', width: 'auto' }}
+                        style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', width: 'auto', fontWeight: 600 }}
                         value={c.status}
                         onChange={(e) => handleStatusChange(c.id, e.target.value)}
                       >
                         <option value="pending">Pending</option>
-                        <option value="in-progress">In Progress</option>
-                        <option value="resolved">Resolved</option>
+                        <option value="in-progress">Deploying</option>
+                        <option value="resolved">Neutralized</option>
                       </select>
                     </td>
                     <td style={{ padding: '1rem' }}>
-                      <button className="btn btn-outline" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }} onClick={() => setSelectedComplaint(c)}>Details</button>
+                      <button className="btn btn-outline" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem' }}>View Intel</button>
                     </td>
                   </tr>
                 ))}
