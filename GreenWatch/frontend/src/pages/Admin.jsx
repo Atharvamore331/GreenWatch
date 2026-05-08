@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Shield, TrendingUp, AlertCircle, CheckCircle, Download, LayoutGrid, List, MapPin, Search } from 'lucide-react';
 import Layout from '../components/Layout';
+import GoogleMapView from '../components/GoogleMapView';
 
 export default function Admin() {
   const { complaints, updateComplaintStatus, isLoading } = useAppContext();
@@ -215,20 +215,8 @@ export default function Admin() {
               <button className="btn btn-ghost btn-sm"><List size={16} /> Log View</button>
             </div>
           </div>
-          <div style={{ height: '320px', width: '100%', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)' }}>
-            <MapContainer center={[12.9716, 77.5946]} zoom={12} style={{ height: '100%', width: '100%' }}>
-              <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
-              {filteredComplaints.map(c => (
-                c.lat && c.lng && (
-                  <Marker key={c.id} position={[c.lat, c.lng]}>
-                    <Popup>
-                      <div style={{ color: '#1e293b', fontWeight: 600 }}>{c.title}</div>
-                      <div style={{ color: '#64748b', fontSize: '0.75rem' }}>{c.location}</div>
-                    </Popup>
-                  </Marker>
-                )
-              ))}
-            </MapContainer>
+          <div style={{ height: '340px', width: '100%', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)' }}>
+            <GoogleMapView complaints={filteredComplaints} height="340px" />
           </div>
         </div>
 
