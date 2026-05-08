@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import { useAppContext } from '../context/AppContext';
 import { 
   Leaf, 
   Search, 
@@ -22,21 +22,17 @@ import {
 } from 'lucide-react';
 import { subscribeToasts } from '../utils/toastService';
 
-const API_URL = 'http://localhost:5000/api';
-
 export default function Layout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, notifications, markNotificationRead, logout } = useAppContext();
+
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   
-  const [notifications, setNotifications] = useState([]);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [notifFilter, setNotifFilter] = useState('all');
   const [toasts, setToasts] = useState([]);
-
-  const userStr = localStorage.getItem('greenwatch_current_user');
-  const user = userStr ? JSON.parse(userStr) : null;
 
   useEffect(() => {
     const unsubscribe = subscribeToasts((toastData) => {
@@ -48,30 +44,8 @@ export default function Layout({ children }) {
     return unsubscribe;
   }, []);
 
-  useEffect(() => {
-    if (user) fetchNotifications();
-  }, [user?.id]);
-
-  const fetchNotifications = async () => {
-    try {
-      const res = await axios.get(`${API_URL}/notifications/${user.id}`);
-      setNotifications(res.data.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)));
-    } catch (err) {
-      console.error("Error fetching notifications", err);
-    }
-  };
-
-  const handleMarkAsRead = async (id) => {
-    try {
-      await axios.patch(`${API_URL}/notifications/${id}/read`);
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
-    } catch (err) {
-      console.error("Error marking read", err);
-    }
-  };
-
   const handleLogout = () => {
-    localStorage.removeItem('greenwatch_current_user');
+    logout();
     navigate('/');
   };
 
@@ -140,7 +114,7 @@ export default function Layout({ children }) {
             </button>
             <div className="search-bar">
               <Search size={18} className="search-icon" />
-              <input type="text" placeholder="Intelligence search..." />
+              <input type="text" placeholder="Search Environmental Reports..." />
             </div>
           </div>
           
@@ -171,7 +145,7 @@ export default function Layout({ children }) {
                       </div>
                     ) : (
                       filteredNotifs.map(n => (
-                        <div key={n.id} className={`notification-card ${!n.isRead ? 'unread' : ''}`} onClick={() => !n.isRead && handleMarkAsRead(n.id)}>
+                        <div key={n.id} className={`notification-card ${!n.isRead ? 'unread' : ''}`} onClick={() => !n.isRead && markNotificationRead(n.id)}>
                           <div style={{ marginTop: '0.25rem' }}>
                             <MessageSquare size={16} color={!n.isRead ? 'var(--primary)' : 'var(--text-dim)'} />
                           </div>
@@ -192,9 +166,9 @@ export default function Layout({ children }) {
               <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), var(--secondary))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '800', fontSize: '0.8rem', boxShadow: '0 0 15px var(--primary-glow)' }}>
                 {user ? user.name.charAt(0).toUpperCase() : 'U'}
               </div>
-              <div style={{ display: window.innerWidth <= 768 ? 'none' : 'block' }}>
-                <p style={{ fontWeight: 700, fontSize: '0.9rem', margin: 0 }}>{user ? user.name : 'Citizen'}</p>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', margin: 0 }}>{user?.role === 'admin' ? 'Environmental Admin' : 'Active Citizen'}</p>
+              <div className="profile-info">
+                <p style={{ fontWeight: 700, fontSize: '0.9rem', margin: 0, lineHeight: 1.2 }}>{user ? user.name : 'Citizen'}</p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', margin: 0, lineHeight: 1.4 }}>{user?.role === 'admin' ? 'Environmental Admin' : 'Active Citizen'}</p>
               </div>
             </div>
           </div>

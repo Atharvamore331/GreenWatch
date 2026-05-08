@@ -1,47 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useAppContext } from '../context/AppContext';
 import { Search, Filter, Ghost, CheckCircle, Clock, MapPin, Users, Wrench, ChevronDown, ChevronUp, AlertTriangle, Layers } from 'lucide-react';
 import Layout from '../components/Layout';
 
-const API_URL = 'http://localhost:5000/api';
-
 export default function Complaints() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [complaints, setComplaints] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, complaints, isLoading } = useAppContext();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
   const [expandedCardId, setExpandedCardId] = useState(null);
 
-  useEffect(() => {
-    const userStr = localStorage.getItem('greenwatch_current_user');
-    if (!userStr) return navigate('/');
-    const u = JSON.parse(userStr);
-    setUser(u);
-    
-    fetchComplaints(u).then(() => {
-      setTimeout(() => setIsLoading(false), 600);
-    });
-  }, [navigate]);
+  // If citizen, only show their complaints. If admin, show all.
+  const relevantComplaints = user?.role === 'citizen' 
+    ? complaints.filter(c => c.citizenId === user.id || (c.citizen && c.citizen.id === user.id))
+    : complaints;
 
-  const fetchComplaints = async (u) => {
-    try {
-      const res = await axios.get(`${API_URL}/complaints`);
-      let data = res.data;
-      if (u.role === 'citizen') {
-        data = data.filter(c => c.citizenId === u.id || (c.citizen && c.citizen.id === u.id));
-      }
-      setComplaints(data.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const filteredComplaints = complaints.filter(c => {
+  const filteredComplaints = relevantComplaints.filter(c => {
     if (filterStatus !== 'all' && c.status !== filterStatus) return false;
     if (filterCategory !== 'all' && c.category !== filterCategory) return false;
     if (searchTerm) {
@@ -65,8 +42,8 @@ export default function Complaints() {
         {/* Header & Intelligence Controls */}
         <div className="flex-between mb-8" style={{ flexWrap: 'wrap', gap: 'var(--s-6)' }}>
           <div>
-            <h1 className="text-gradient">Intelligence Archive</h1>
-            <p style={{ color: 'var(--text-muted)' }}>Historical and active environmental intelligence data.</p>
+            <h1 className="text-gradient">Environmental Report Archive</h1>
+            <p style={{ color: 'var(--text-muted)' }}>Historical and active environmental activity data.</p>
           </div>
           
           <div className="flex-center" style={{ gap: 'var(--s-4)', flexWrap: 'wrap' }}>
@@ -114,8 +91,8 @@ export default function Complaints() {
         ) : filteredComplaints.length === 0 ? (
           <div className="card flex-center" style={{ padding: '5rem', flexDirection: 'column', textAlign: 'center' }}>
             <Ghost size={64} color="var(--border)" style={{ marginBottom: '1.5rem', opacity: 0.3 }} />
-            <h3 style={{ color: 'var(--text-muted)' }}>No Intelligence Data</h3>
-            <p style={{ color: 'var(--text-dim)' }}>Adjust filters or deployment criteria.</p>
+            <h3 style={{ color: 'var(--text-muted)' }}>No Environmental Reports Found</h3>
+            <p style={{ color: 'var(--text-dim)' }}>Adjust filters or search criteria.</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s-4)' }}>
@@ -173,7 +150,7 @@ export default function Complaints() {
                           <p style={{ color: 'var(--text-main)', fontSize: '1rem', lineHeight: 1.6 }}>{c.desc}</p>
                           <div style={{ marginTop: '1.5rem', display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
                             <div>
-                              <p className="form-label">Assigned Operatives</p>
+                              <p className="form-label">Assigned Team</p>
                               <div className="flex-center" style={{ gap: '0.5rem', justifyContent: 'flex-start' }}>
                                 <Users size={16} color="var(--primary)" />
                                 <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{c.assignedTo || 'Unassigned'}</span>
@@ -187,7 +164,7 @@ export default function Complaints() {
                         </div>
                         {c.image && (
                           <div style={{ position: 'relative' }}>
-                            <img src={c.image} alt="Intelligence Proof" style={{ width: '100%', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }} />
+                            <img src={c.image} alt="Evidence Proof" style={{ width: '100%', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }} />
                             <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'rgba(0,0,0,0.6)', padding: '0.25rem', borderRadius: '4px' }}>
                               <CheckCircle size={14} color="var(--primary)" />
                             </div>
@@ -198,7 +175,7 @@ export default function Complaints() {
                       {/* Simplified Tracking Timeline */}
                       <div className="card-glass mt-4" style={{ padding: '1rem', borderRadius: 'var(--radius-md)' }}>
                         <div className="flex-between">
-                          <p style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-dim)' }}>INTELLIGENCE TRACKING STATUS</p>
+                          <p style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-dim)' }}>REPORT TRACKING STATUS</p>
                           <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 700 }}>LIVE SYNC ACTIVE</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', position: 'relative' }}>
@@ -207,7 +184,7 @@ export default function Complaints() {
                           {[
                             { label: 'Logged', icon: <Clock size={12} />, active: true },
                             { label: 'Assigned', icon: <Users size={12} />, active: !!c.assignedTo || c.status !== 'pending' },
-                            { label: 'Neutralizing', icon: <Wrench size={12} />, active: c.status === 'in-progress' || c.status === 'resolved' },
+                            { label: 'In Progress', icon: <Wrench size={12} />, active: c.status === 'in-progress' || c.status === 'resolved' },
                             { label: 'Resolved', icon: <CheckCircle size={12} />, active: c.status === 'resolved' }
                           ].map((step, i) => (
                             <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', zIndex: 2 }}>

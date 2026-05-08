@@ -1,29 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
-import axios from 'axios';
-import { Shield, MapPin, AlertCircle, Info, Maximize2 } from 'lucide-react';
+import { Shield, MapPin, AlertCircle, Maximize2 } from 'lucide-react';
 import Layout from '../components/Layout';
-
-const API_URL = 'http://localhost:5000/api';
+import { useAppContext } from '../context/AppContext';
 
 export default function MapPage() {
-  const [complaints, setComplaints] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    fetchComplaints();
-  }, []);
-
-  const fetchComplaints = async () => {
-    try {
-      const res = await axios.get(`${API_URL}/complaints`);
-      setComplaints(res.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setTimeout(() => setIsLoading(false), 800);
-    }
-  };
+  const { complaints, isLoading } = useAppContext();
 
   const getMarkerColor = (status) => {
     if (status === 'pending') return 'var(--warning)';
@@ -36,7 +18,7 @@ export default function MapPage() {
       <div className="fade-in" style={{ height: 'calc(100vh - var(--topbar-height) - 4rem)', display: 'flex', flexDirection: 'column' }}>
         <div className="flex-between mb-8">
           <div>
-            <h1 className="text-gradient">Intelligence Heatmap</h1>
+            <h1 className="text-gradient">Environmental Activity Map</h1>
             <p style={{ color: 'var(--text-muted)' }}>Real-time spatial visualization of environmental reports.</p>
           </div>
           <div className="flex-center" style={{ gap: '1rem' }}>
@@ -72,7 +54,7 @@ export default function MapPage() {
                           </div>
                           <hr style={{ margin: '0.75rem 0', opacity: 0.1 }} />
                           <button className="btn btn-primary" style={{ width: '100%', padding: '0.4rem', fontSize: '0.75rem' }}>
-                            Open Intel Report
+                            Open Activity Report
                           </button>
                         </div>
                       </Popup>
@@ -89,7 +71,7 @@ export default function MapPage() {
             <AlertCircle size={16} /> <span>Dynamic clustering enabled</span>
           </div>
           <div className="flex-center" style={{ gap: '0.5rem', color: 'var(--text-dim)', fontSize: '0.85rem' }}>
-            <Shield size={16} /> <span>Satellite telemetry active</span>
+            <Shield size={16} /> <span>Environmental Monitoring Active</span>
           </div>
           <div className="flex-center" style={{ gap: '0.5rem', color: 'var(--text-dim)', fontSize: '0.85rem' }}>
             <Maximize2 size={16} /> <span>Edge-to-edge rendering</span>

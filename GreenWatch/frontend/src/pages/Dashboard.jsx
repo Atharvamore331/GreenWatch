@@ -1,65 +1,95 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useState } from 'react';
 import { 
   Trophy, 
   AlertTriangle, 
   Plus, 
   ChevronRight, 
-  ArrowUpRight,
   ShieldCheck,
   Zap,
   MapPin,
   Clock,
-  ExternalLink
+  CheckCircle,
+  Activity
 } from 'lucide-react';
 import Layout from '../components/Layout';
-
-const API_URL = 'http://localhost:5000/api';
+import NewComplaintModal from '../components/NewComplaintModal';
+import { useAppContext } from '../context/AppContext';
+import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
-  const [user, setUser] = useState(null);
-  const [complaints, setComplaints] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const userStr = localStorage.getItem('greenwatch_current_user');
-    if (userStr) {
-      const u = JSON.parse(userStr);
-      setUser(u);
-      fetchUserComplaints(u.id);
-    }
-  }, []);
-
-  const fetchUserComplaints = async (userId) => {
-    setIsLoading(true);
-    try {
-      const res = await axios.get(`${API_URL}/complaints/citizen/${userId}`);
-      setComplaints(res.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      // Simulate network delay for premium feel
-      setTimeout(() => setIsLoading(false), 800);
-    }
-  };
-
-  const stats = [
-    { label: 'Total Reports', value: complaints.length, icon: <AlertTriangle size={24} />, color: 'var(--primary)', shadow: 'var(--primary-glow)' },
-    { label: 'Resolved Cases', value: complaints.filter(c => c.status === 'resolved').length, icon: <ShieldCheck size={24} />, color: 'var(--secondary)', shadow: 'rgba(59, 130, 246, 0.2)' },
-    { label: 'Impact Points', value: user?.points || 0, icon: <Zap size={24} />, color: 'var(--warning)', shadow: 'rgba(245, 158, 11, 0.2)' },
-  ];
+  const { user, complaints, notifications, isLoading } = useAppContext();
+  const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   if (!user) return null;
+
+  // Filter complaints specific to this citizen
+  const userComplaints = complaints.filter(c => c.citizenId === user.id || (c.citizen && c.citizen.id === user.id));
+
+  const pendingCount = userComplaints.filter(c => c.status === 'pending' || c.status === 'in-progress').length;
+  const resolvedCount = userComplaints.filter(c => c.status === 'resolved').length;
+
+  const stats = [
+    { label: 'Total Reports', value: userComplaints.length, icon: <AlertTriangle size={24} />, color: 'var(--primary)', shadow: 'var(--primary-glow)' },
+    { label: 'Resolved Cases', value: resolvedCount, icon: <ShieldCheck size={24} />, color: 'var(--secondary)', shadow: 'rgba(59, 130, 246, 0.2)' },
+    { label: 'Impact Points', value: user.points || 0, icon: <Zap size={24} />, color: 'var(--warning)', shadow: 'rgba(245, 158, 11, 0.2)' },
+  ];
+
+  // Generate Activity Feed by merging real notifications + synthesized creation events
+  let activities = [];
+  
+  if (notifications) {
+    notifications.forEach(n => {
+      let type = 'info';
+      let icon = <Activity size={16} />;
+      
+      if (n.message.includes('resolved')) {
+        type = 'resolved';
+        icon = <CheckCircle size={16} />;
+      } else if (n.message.includes('assigned') || n.message.includes('progress') || n.message.includes('in-progress')) {
+        type = 'progress';
+        icon = <Zap size={16} />;
+      }
+
+      activities.push({
+        id: `notif-${n.id}`,
+        type,
+        title: 'Status Update',
+        desc: n.message,
+        date: new Date(n.createdAt),
+        icon
+      });
+    });
+  }
+
+  userComplaints.forEach(c => {
+    activities.push({
+      id: `comp-${c.id}-created`,
+      type: 'created',
+      title: 'Report Submitted',
+      desc: c.title,
+      date: new Date(c.createdAt),
+      icon: <AlertTriangle size={16} />
+    });
+  });
+
+  // Sort activities by date descending
+  activities.sort((a, b) => b.date - a.date);
+  const recentActivities = activities.slice(0, 5);
 
   return (
     <Layout>
       <div className="fade-in">
-        {/* Welcome Header */}
-        <div className="mb-8">
-          <h1 className="text-gradient">Welcome, {user.name}</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '1.125rem' }}>
-            Track your environmental impact and active reports.
-          </p>
+        <div className="flex-between mb-8">
+          <div>
+            <h1 className="text-gradient">Welcome, {user.name}</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '1.125rem' }}>
+              Track your environmental impact and active reports.
+            </p>
+          </div>
+          <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+            <Plus size={18} /> New Report
+          </button>
         </div>
 
         {/* Stats Grid */}
@@ -94,24 +124,24 @@ export default function Dashboard() {
         <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 'var(--s-8)' }}>
           
           {/* Left Column: Reports List */}
-          <section>
+          <div>
             <div className="flex-between mb-8">
-              <h3>Active Intelligence Reports</h3>
-              <button className="btn btn-ghost">View History <ChevronRight size={18} /></button>
+              <h3>Recent Environmental Activity</h3>
+              <button className="btn btn-ghost" onClick={() => navigate('/complaints')}>View All <ChevronRight size={18} /></button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s-4)' }}>
               {isLoading ? (
                 [1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: '100px', borderRadius: 'var(--radius-lg)' }}></div>)
-              ) : complaints.length === 0 ? (
+              ) : userComplaints.length === 0 ? (
                 <div className="card flex-center" style={{ padding: 'var(--s-16)', flexDirection: 'column', textAlign: 'center' }}>
                   <AlertTriangle size={48} color="var(--text-muted)" style={{ marginBottom: 'var(--s-4)', opacity: 0.3 }} />
                   <h4 style={{ color: 'var(--text-muted)' }}>No Active Reports</h4>
                   <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>You haven't filed any environmental reports yet.</p>
-                  <button className="btn btn-primary mt-4"><Plus size={18} /> New Report</button>
+                  <button className="btn btn-primary mt-4" onClick={() => setIsModalOpen(true)}><Plus size={18} /> New Report</button>
                 </div>
               ) : (
-                complaints.slice(0, 4).map(c => (
+                userComplaints.slice(0, 4).map(c => (
                   <div key={c.id} className="card card-interactive" style={{ padding: 'var(--s-4)', display: 'flex', gap: 'var(--s-4)', alignItems: 'center' }}>
                     <div style={{ 
                       width: '70px', height: '70px', borderRadius: 'var(--radius-md)', 
@@ -135,56 +165,69 @@ export default function Dashboard() {
                         <span className="flex-center" style={{ gap: '0.3rem' }}><Clock size={14} /> {new Date(c.createdAt).toLocaleDateString()}</span>
                       </div>
                     </div>
-                    <button className="icon-button"><ChevronRight size={20} /></button>
+                    <button className="icon-button" onClick={() => navigate('/complaints')}><ChevronRight size={20} /></button>
                   </div>
                 ))
               )}
             </div>
-          </section>
+          </div>
 
-          {/* Right Column: Leaderboard & Actions */}
+          {/* Right Column: Activity Feed */}
           <aside>
             <div className="flex-between mb-8">
-              <h3>Community Leaders</h3>
-              <Trophy size={20} color="var(--warning)" />
+              <h3>Recent Activity</h3>
+              <Activity size={20} color="var(--info)" />
             </div>
             
             <div className="card mb-8">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="flex-between">
-                    <div className="flex-center" style={{ gap: '1rem' }}>
-                      <span style={{ fontSize: '1.1rem', fontWeight: 800, color: i === 1 ? 'var(--warning)' : 'var(--text-muted)', width: '24px' }}>{i}</span>
-                      <div style={{ 
-                        width: '40px', height: '40px', borderRadius: 'var(--radius-full)', 
-                        background: 'linear-gradient(135deg, var(--primary), var(--secondary))', 
-                        opacity: 1 - (i*0.2), display: 'flex', alignItems: 'center', 
-                        justifyContent: 'center', fontWeight: '800', fontSize: '0.75rem' 
-                      }}>
-                        {String.fromCharCode(64 + i)}C
+              {recentActivities.length === 0 ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-dim)' }}>
+                  <p>No recent activity detected.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  {recentActivities.map((act, i) => (
+                    <div key={act.id} className="flex-between" style={{ position: 'relative' }}>
+                      {/* Timeline line */}
+                      {i !== recentActivities.length - 1 && (
+                        <div style={{ position: 'absolute', left: '19px', top: '40px', bottom: '-1.5rem', width: '2px', background: 'var(--border)' }}></div>
+                      )}
+                      
+                      <div className="flex-center" style={{ gap: '1rem', alignItems: 'flex-start' }}>
+                        <div style={{ 
+                          width: '40px', height: '40px', borderRadius: '50%', 
+                          background: act.type === 'resolved' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.1)', 
+                          color: act.type === 'resolved' ? 'var(--primary)' : 'var(--secondary)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1
+                        }}>
+                          {act.icon}
+                        </div>
+                        <div>
+                          <p style={{ fontWeight: 700, margin: '0 0 0.25rem 0', fontSize: '0.95rem' }}>{act.title}</p>
+                          <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', margin: 0 }}>{act.desc}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p style={{ fontWeight: 700, margin: 0, fontSize: '0.95rem' }}>Citizen {String.fromCharCode(64 + i)}</p>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', margin: 0 }}>{3000 - i*250} Impact Points</p>
-                      </div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                        {act.date.toLocaleDateString()}
+                      </span>
                     </div>
-                    {i === 1 && <ArrowUpRight size={18} color="var(--primary)" />}
-                  </div>
-                ))}
-              </div>
-              <button className="btn btn-outline" style={{ width: '100%', marginTop: '2rem' }}>Full Ranking <ExternalLink size={14} /></button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Floating Action Button Replacement */}
+            {/* Quick Actions */}
             <div className="card-glass" style={{ padding: '1.5rem', borderRadius: 'var(--radius-lg)', textAlign: 'center' }}>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>See something wrong in nature?</p>
-              <button className="btn btn-primary" style={{ width: '100%', padding: '1.25rem', borderRadius: 'var(--radius-md)' }}>
+              <button className="btn btn-primary" style={{ width: '100%', padding: '1.25rem', borderRadius: 'var(--radius-md)' }} onClick={() => setIsModalOpen(true)}>
                 <Plus size={20} /> New Environmental Report
               </button>
             </div>
           </aside>
         </div>
       </div>
+
+      <NewComplaintModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </Layout>
   );
 }
